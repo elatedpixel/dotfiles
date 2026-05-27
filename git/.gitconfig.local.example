@@ -1,0 +1,4 @@
+# Copy to ~/.gitconfig.local — never committed.
+[user]
+  name = Your Name
+  email = your@email.com

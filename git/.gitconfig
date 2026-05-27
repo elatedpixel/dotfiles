@@ -1,0 +1,45 @@
+[include]
+  path = ~/.gitconfig.local
+
+[core]
+  excludesfile = ~/.gitignore_global
+  editor = nvim
+  autocrlf = input
+
+[push]
+  default = current
+  autoSetupRemote = true
+
+[pull]
+  rebase = true
+
+[init]
+  defaultBranch = main
+
+[merge]
+  conflictstyle = diff3
+
+[diff]
+  colorMoved = default
+
+[rebase]
+  autosquash = true
+
+[alias]
+  st = status
+  co = checkout
+  lg = log --oneline --graph --decorate --all
+
+[pager]
+  diff = delta
+  log = delta
+  reflog = delta
+  show = delta
+
+[interactive]
+  diffFilter = delta --color-only
+
+[delta]
+  navigate = true
+  light = false
+  side-by-side = false
