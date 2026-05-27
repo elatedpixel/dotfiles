@@ -134,3 +134,86 @@ install_core() {
     ok "delta already installed"
   fi
 }
+
+###############################################################################
+# Node / npm via nvm
+###############################################################################
+
+install_node() {
+  if [[ -d "$HOME/.nvm" ]]; then
+    ok "nvm already installed"
+    return
+  fi
+  info "Installing nvm..."
+  curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
+  export NVM_DIR="$HOME/.nvm"
+  # shellcheck source=/dev/null
+  [[ -s "$NVM_DIR/nvm.sh" ]] && source "$NVM_DIR/nvm.sh"
+  info "Installing Node.js LTS..."
+  nvm install --lts
+  nvm use --lts
+  nvm alias default 'lts/*'
+  ok "node $(node --version) installed"
+}
+
+###############################################################################
+# Python via uv
+###############################################################################
+
+install_python() {
+  if has uv; then
+    ok "uv already installed"
+    return
+  fi
+  info "Installing uv..."
+  curl -LsSf https://astral.sh/uv/install.sh | sh
+  export PATH="$HOME/.local/bin:$PATH"
+  ok "uv $(uv --version) installed"
+}
+
+###############################################################################
+# AI tools: claude, pi, hermes
+###############################################################################
+
+install_ai_tools() {
+  # Claude Code CLI
+  if ! has claude; then
+    info "Installing Claude Code CLI..."
+    npm install -g @anthropic-ai/claude-code
+  else
+    ok "claude already installed"
+  fi
+
+  # pi coding agent
+  if ! has pi; then
+    info "Installing pi..."
+    npm install -g @earendil-works/pi-coding-agent
+  else
+    ok "pi already installed"
+  fi
+
+  # hermes agent
+  if [[ -d "$HOME/.hermes/hermes-agent" ]]; then
+    ok "hermes already installed"
+    return
+  fi
+  info "Installing hermes..."
+  mkdir -p "$HOME/.hermes"
+  git clone https://github.com/NousResearch/hermes-agent.git "$HOME/.hermes/hermes-agent"
+  cd "$HOME/.hermes/hermes-agent"
+  uv venv
+  uv pip install -e .
+  cd - >/dev/null
+
+  # Write wrapper script
+  mkdir -p "$HOME/.local/bin"
+  cat > "$HOME/.local/bin/hermes" << 'WRAPPER'
+#!/usr/bin/env bash
+unset PYTHONPATH
+unset PYTHONHOME
+exec "$HOME/.hermes/hermes-agent/venv/bin/hermes" "$@"
+WRAPPER
+  chmod +x "$HOME/.local/bin/hermes"
+  ok "hermes installed"
+}
+
