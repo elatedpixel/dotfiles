@@ -1,0 +1,30 @@
+# Secrets and machine-local files
+*.local
+.env
+.env.*
+auth.json
+.credentials.json
+.gitconfig.local
+
+# Runtime state
+*.db
+*.db-shm
+*.db-wal
+sessions/
+cache/
+logs/
+*.bak*
+*.bak.*
+
+# macOS
+.DS_Store
+.AppleDouble
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Node
+node_modules/
