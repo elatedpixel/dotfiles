@@ -217,3 +217,169 @@ WRAPPER
   ok "hermes installed"
 }
 
+
+###############################################################################
+# Spacemacs + clojure-lsp
+###############################################################################
+
+install_spacemacs() {
+  if [[ -d "$HOME/.emacs.d" ]]; then
+    ok "Spacemacs already installed"
+  else
+    info "Installing Spacemacs..."
+    git clone https://github.com/syl20bnr/spacemacs "$HOME/.emacs.d"
+  fi
+
+  # clojure-lsp binary
+  if has clojure-lsp; then
+    ok "clojure-lsp already installed"
+    return
+  fi
+  info "Installing clojure-lsp..."
+  mkdir -p "$HOME/.local/bin"
+  if [[ "$OS" == "macos" ]]; then
+    brew tap clojure-lsp/brew 2>/dev/null || true
+    brew install clojure-lsp/brew/clojure-lsp-native || \
+      { warn "clojure-lsp brew install failed — skipping"; return; }
+  elif [[ "$OS" == "debian" ]]; then
+    local lsp_url
+    lsp_url=$(curl -s https://api.github.com/repos/clojure-lsp/clojure-lsp/releases/latest \
+      | grep "browser_download_url.*linux.*amd64" | grep -v ".jar" | cut -d '"' -f 4)
+    [[ -n "$lsp_url" ]] || { warn "Could not resolve clojure-lsp download URL — skipping"; return; }
+    curl -Lo "$HOME/.local/bin/clojure-lsp" "$lsp_url"
+    chmod +x "$HOME/.local/bin/clojure-lsp"
+  elif [[ "$OS" == "arch" ]]; then
+    "${PKG_INSTALL[@]}" clojure-lsp
+  fi
+  ok "clojure-lsp installed"
+}
+
+###############################################################################
+# Shell: oh-my-zsh + plugins
+###############################################################################
+
+install_shell() {
+  if [[ -d "$HOME/.oh-my-zsh" ]]; then
+    ok "oh-my-zsh already installed"
+  else
+    info "Installing oh-my-zsh..."
+    RUNZSH=no CHSH=no sh -c \
+      "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+  fi
+
+  local custom="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
+
+  if [[ ! -d "$custom/plugins/zsh-autosuggestions" ]]; then
+    info "Installing zsh-autosuggestions..."
+    git clone https://github.com/zsh-users/zsh-autosuggestions \
+      "$custom/plugins/zsh-autosuggestions"
+  else
+    ok "zsh-autosuggestions already installed"
+  fi
+
+  if [[ ! -d "$custom/plugins/zsh-syntax-highlighting" ]]; then
+    info "Installing zsh-syntax-highlighting..."
+    git clone https://github.com/zsh-users/zsh-syntax-highlighting \
+      "$custom/plugins/zsh-syntax-highlighting"
+  else
+    ok "zsh-syntax-highlighting already installed"
+  fi
+}
+
+###############################################################################
+# tmux plugin manager
+###############################################################################
+
+install_tpm() {
+  if [[ -d "$HOME/.tmux/plugins/tpm" ]]; then
+    ok "tpm already installed"
+    return
+  fi
+  info "Installing tpm..."
+  git clone https://github.com/tmux-plugins/tpm "$HOME/.tmux/plugins/tpm"
+  ok "tpm installed"
+}
+
+###############################################################################
+# Back up conflicts + stow all packages
+###############################################################################
+
+backup_and_stow() {
+  info "Backing up conflicting files..."
+
+  backup_if_exists "$HOME/.zshrc"
+  backup_if_exists "$HOME/.tmux.conf"
+  backup_if_exists "$HOME/.config/tmux"
+  backup_if_exists "$HOME/.config/nvim"
+  backup_if_exists "$HOME/.spacemacs"
+  backup_if_exists "$HOME/.gitconfig"
+  backup_if_exists "$HOME/.gitignore_global"
+  backup_if_exists "$HOME/.hermes/config.yaml"
+  backup_if_exists "$HOME/.hermes/SOUL.md"
+  backup_if_exists "$HOME/.pi/agent/settings.json"
+  backup_if_exists "$HOME/.pi/agent/models.json"
+  backup_if_exists "$HOME/.claude/settings.json"
+
+  info "Stowing packages..."
+  cd "$DOTFILES"
+  local packages=(zsh tmux nvim spacemacs git hermes pi claude)
+  for pkg in "${packages[@]}"; do
+    if [[ -d "$DOTFILES/$pkg" ]]; then
+      stow --restow "$pkg"
+      ok "stowed $pkg"
+    else
+      warn "package $pkg not found in $DOTFILES — skipping"
+    fi
+  done
+}
+
+###############################################################################
+# Post-install message
+###############################################################################
+
+post_install_msg() {
+  echo ""
+  echo "========================================================"
+  echo "  Installation complete!"
+  echo "========================================================"
+  echo ""
+  echo "Next steps — see POST_INSTALL.md for the full guide:"
+  echo "  cat $DOTFILES/POST_INSTALL.md"
+  echo ""
+  echo "Quick checklist:"
+  echo "  1. cp ~/.zshrc.local.example ~/.zshrc.local  (fill in secrets)"
+  echo "  2. cp ~/.hermes/.env.example ~/.hermes/.env  (fill in API keys)"
+  echo "  3. claude  ->  /login"
+  echo "  4. pi login"
+  echo "  5. hermes login"
+  echo "  6. tmux -> prefix+I  (install tpm plugins)"
+  echo "  7. nvim  (LazyVim bootstraps automatically)"
+  echo "  8. emacs  (Spacemacs installs layers, ~5 min)"
+  echo ""
+}
+
+###############################################################################
+# Main
+###############################################################################
+
+main() {
+  echo "Setting up dotfiles from $DOTFILES"
+  detect_os
+  setup_package_manager
+  install_core
+  install_node
+  install_python
+
+  # nvm must be sourced before AI tools that need npm
+  export NVM_DIR="$HOME/.nvm"
+  [[ -s "$NVM_DIR/nvm.sh" ]] && source "$NVM_DIR/nvm.sh"
+
+  install_ai_tools
+  install_spacemacs
+  install_shell
+  install_tpm
+  backup_and_stow
+  post_install_msg
+}
+
+main "$@"
