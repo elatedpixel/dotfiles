@@ -1,0 +1,11 @@
+{
+  "providers": {
+    "anthropic": {
+      "api": "anthropic-messages",
+      "apiKey": "ANTHROPIC_API_KEY",
+      "models": [
+        { "id": "claude-3-5-sonnet-20241022" }
+      ]
+    }
+  }
+}
