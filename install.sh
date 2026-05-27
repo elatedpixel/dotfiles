@@ -50,15 +50,15 @@ setup_package_manager() {
       info "Installing Homebrew..."
       /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
     fi
-    PKG_INSTALL="brew install"
-    PKG_UPDATE="brew update"
+    PKG_INSTALL=(brew install)
+    PKG_UPDATE=(brew update)
   elif [[ "$OS" == "debian" ]]; then
     sudo apt-get update -qq
-    PKG_INSTALL="sudo apt-get install -y"
-    PKG_UPDATE="sudo apt-get update -qq"
+    PKG_INSTALL=(sudo apt-get install -y)
+    PKG_UPDATE=(sudo apt-get update -qq)
   elif [[ "$OS" == "arch" ]]; then
-    PKG_INSTALL="sudo pacman -S --noconfirm"
-    PKG_UPDATE="sudo pacman -Sy"
+    PKG_INSTALL=(sudo pacman -S --noconfirm)
+    PKG_UPDATE=(sudo pacman -Sy)
   fi
 }
 
@@ -73,7 +73,7 @@ install_core() {
   for tool in "${tools[@]}"; do
     if ! has "$tool"; then
       info "Installing $tool..."
-      $PKG_INSTALL "$tool"
+      "${PKG_INSTALL[@]}" "$tool"
     else
       ok "$tool already installed"
     fi
@@ -83,15 +83,19 @@ install_core() {
   if ! has nvim; then
     info "Installing neovim..."
     if [[ "$OS" == "macos" ]]; then
-      $PKG_INSTALL neovim
+      "${PKG_INSTALL[@]}" neovim
     elif [[ "$OS" == "debian" ]]; then
-      # apt neovim is often outdated; use AppImage for current version
-      local nvim_url="https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.appimage"
-      curl -Lo /tmp/nvim.appimage "$nvim_url"
-      chmod +x /tmp/nvim.appimage
-      sudo mv /tmp/nvim.appimage /usr/local/bin/nvim
+      local arch; arch=$(uname -m)
+      if [[ "$arch" == "x86_64" ]]; then
+        local nvim_url="https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.appimage"
+        curl -Lo /tmp/nvim.appimage "$nvim_url"
+        chmod +x /tmp/nvim.appimage
+        sudo mv /tmp/nvim.appimage /usr/local/bin/nvim
+      else
+        "${PKG_INSTALL[@]}" neovim
+      fi
     elif [[ "$OS" == "arch" ]]; then
-      $PKG_INSTALL neovim
+      "${PKG_INSTALL[@]}" neovim
     fi
   else
     ok "nvim already installed"
@@ -101,11 +105,11 @@ install_core() {
   if ! has emacs; then
     info "Installing emacs..."
     if [[ "$OS" == "macos" ]]; then
-      $PKG_INSTALL emacs
+      "${PKG_INSTALL[@]}" emacs
     elif [[ "$OS" == "debian" ]]; then
-      $PKG_INSTALL emacs-nox
+      "${PKG_INSTALL[@]}" emacs-nox
     elif [[ "$OS" == "arch" ]]; then
-      $PKG_INSTALL emacs
+      "${PKG_INSTALL[@]}" emacs
     fi
   else
     ok "emacs already installed"
@@ -115,15 +119,16 @@ install_core() {
   if ! has delta; then
     info "Installing git-delta..."
     if [[ "$OS" == "macos" ]]; then
-      $PKG_INSTALL git-delta
+      "${PKG_INSTALL[@]}" git-delta
     elif [[ "$OS" == "debian" ]]; then
       local delta_url
       delta_url=$(curl -s https://api.github.com/repos/dandavison/delta/releases/latest \
         | grep "browser_download_url.*amd64.deb" | cut -d '"' -f 4)
+      [[ -n "$delta_url" ]] || { warn "Could not resolve delta download URL — skipping"; return; }
       curl -Lo /tmp/git-delta.deb "$delta_url"
       sudo dpkg -i /tmp/git-delta.deb
     elif [[ "$OS" == "arch" ]]; then
-      $PKG_INSTALL git-delta
+      "${PKG_INSTALL[@]}" git-delta
     fi
   else
     ok "delta already installed"
