@@ -1,0 +1,10 @@
+# Copy this file to ~/.zshrc.local and fill in values.
+# This file is gitignored and never committed.
+
+# Claude Code OAuth token (read from ~/.claude/.credentials.json by services;
+# set here for interactive shells)
+# export CLAUDE_CODE_OAUTH_TOKEN=sk-ant-oat01-...
+
+# Add other machine-specific env vars below:
+# export GITHUB_TOKEN=...
+# export AWS_PROFILE=...
